@@ -1,50 +1,40 @@
-"""API unit tests - uses real Redis service."""
+"""API unit tests - FastAPI with real Redis service."""
 import os
 import sys
-from unittest.mock import patch
-import pytest  # noqa: F821
-import fakeredis
-
-# Fix path BEFORE any imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-# All imports AFTER path fix
-from main import app  # noqa: E402
-
-
-@pytest.fixture
-def mock_redis():
-    """Mock Redis instance."""
-    with patch('main.redis_client', fakeredis.FakeStrictRedis()):
-        yield
+from main import app, r  # noqa: E402
+import pytest  # noqa: F821
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
-    """Test client for API endpoints."""
-    app.testing = True
-    with app.test_client() as client:
-        yield client
+    """Test client for FastAPI endpoints."""
+    return TestClient(app)
 
 
 def test_health_check(client):
     """Test 1: Health check endpoint."""
-    rv = client.get('/')
+    rv = client.get('/health')
     assert rv.status_code == 200
-    assert b'healthy' in rv.data  # Adjust to your response
+    assert rv.json() == {"status": "ok"}
 
 
 def test_job_create(client):
     """Test 2: Create job endpoint."""
-    job_data = {'task': 'test_task', 'priority': 1}
-    rv = client.post('/jobs', json=job_data)
-    assert rv.status_code == 201
-    assert b'job created' in rv.data  # Adjust
+    rv = client.post('/jobs')
+    assert rv.status_code == 200
+    job_id = rv.json()["job_id"]
+    assert len(job_id) > 0
 
 
 def test_get_jobs(client):
-    """Test 3: Get jobs endpoint."""
-    client.post('/jobs', json={'task': 'test_task', 'priority': 1})
-    rv = client.get('/jobs')
+    """Test 3: Get job status."""
+    # Create job first
+    job_response = client.post('/jobs')
+    job_id = job_response.json()["job_id"]
+    
+    # Get job status
+    rv = client.get(f'/jobs/{job_id}')
     assert rv.status_code == 200
-    assert b'test_task' in rv.data
+    assert rv.json()["status"] == "queued"
