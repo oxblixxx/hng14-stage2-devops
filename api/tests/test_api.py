@@ -1,40 +1,32 @@
-from fastapi import FastAPI, Depends
-import redis
-import uuid
 import os
+import sys
 
-app = FastAPI()
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+import pytest
+import fakeredis
+from fastapi.testclient import TestClient
 
-def get_redis():
-    return redis.Redis(
-        host=os.getenv("REDIS_HOST", "localhost"),
-        port=int(os.getenv("REDIS_PORT", 6379)),
-        decode_responses=True
-    )
-
-
-@app.get("/")
-def root():
-    return {"status": "healthy"}
+from main import app, get_redis
 
 
-@app.post("/jobs")
-def create_job(r=Depends(get_redis)):
-    job_id = str(uuid.uuid4())
-    r.lpush("job", job_id)
-    r.hset(f"job:{job_id}", "status", "queued")
-    return {"job_id": job_id}
+@pytest.fixture
+def client():
+    app.dependency_overrides[get_redis] = lambda: fakeredis.FakeStrictRedis()
+    return TestClient(app)
 
 
-@app.get("/jobs/{job_id}")
-def get_job(job_id: str, r=Depends(get_redis)):
-    status = r.hget(f"job:{job_id}", "status")
-    if not status:
-        return {"error": "not found"}
-    return {"job_id": job_id, "status": status}
+def test_health_check(client):
+    rv = client.get("/")
+    assert rv.status_code == 200
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+def test_job_create(client):
+    rv = client.post("/jobs", json={"task": "test_task", "priority": 1})
+    assert rv.status_code == 200 or rv.status_code == 201
+
+
+def test_get_jobs(client):
+    client.post("/jobs", json={"task": "test_task", "priority": 1})
+    rv = client.get("/jobs/some-id")
+    assert rv.status_code == 200 or rv.status_code == 404
