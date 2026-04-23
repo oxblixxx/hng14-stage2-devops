@@ -20,7 +20,7 @@ COPY --from=builder /install /usr/local
 
 # Install curl for healthcheck
 RUN apt-get update && \
-    apt-get install -y curl --no-install-recommends && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY . .
