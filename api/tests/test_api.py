@@ -1,10 +1,13 @@
 """API unit tests - FastAPI with real Redis service."""
 import os
 import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from main import app, r  # noqa: E402
 import pytest  # noqa: F821
 from fastapi.testclient import TestClient
+
+# Fix path BEFORE main import
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from main import app  # noqa: E402
 
 
 @pytest.fixture
