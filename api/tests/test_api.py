@@ -37,7 +37,7 @@ def test_get_jobs(client):
     job_response = client.post('/jobs')
     job_id = job_response.json()["job_id"]
     
-    # Get job status
+
     rv = client.get(f'/jobs/{job_id}')
     assert rv.status_code == 200
     assert rv.json()["status"] == "queued"
