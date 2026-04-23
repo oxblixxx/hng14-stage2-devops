@@ -1,13 +1,12 @@
 """API unit tests - FastAPI with real Redis service."""
 import os
 import sys
-import pytest  # noqa: F821
+import pytest
 from fastapi.testclient import TestClient
 
-# Fix path BEFORE main import
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from main import app  # noqa: E402
+from main import app
 
 
 @pytest.fixture
@@ -27,16 +26,15 @@ def test_job_create(client):
     """Test 2: Create job endpoint."""
     rv = client.post('/jobs')
     assert rv.status_code == 200
+
     job_id = rv.json()["job_id"]
     assert len(job_id) > 0
 
 
 def test_get_jobs(client):
     """Test 3: Get job status."""
-    # Create job first
     job_response = client.post('/jobs')
     job_id = job_response.json()["job_id"]
-    
 
     rv = client.get(f'/jobs/{job_id}')
     assert rv.status_code == 200
