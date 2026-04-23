@@ -1,8 +1,22 @@
 """API unit tests - uses real Redis service."""
 import os
 import sys
+from unittest.mock import patch
+import pytest  # noqa: F821
+import fakeredis
+
+# Fix path BEFORE any imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+# All imports AFTER path fix
 from main import app  # noqa: E402
+
+
+@pytest.fixture
+def mock_redis():
+    """Mock Redis instance."""
+    with patch('main.redis_client', fakeredis.FakeStrictRedis()):
+        yield
 
 
 @pytest.fixture
