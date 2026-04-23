@@ -1,33 +1,50 @@
-require('dotenv').config();
+"""API unit tests with Redis mocked."""
+import os
+import sys
+from unittest.mock import patch
+import pytest
+import fakeredis
 
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-const app = express();
+# Add api/ to path FIRST (fixes E402)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-const API_URL = process.env.API_URL;
+from main import app  # noqa: F401  # Only app needed
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'views')));
 
-app.post('/submit', async (req, res) => {
-  try {
-    const response = await axios.post(`${API_URL}/jobs`);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: "something went wrong" });
-  }
-});
+@pytest.fixture
+def mock_redis():
+    """Mock Redis instance."""
+    with patch('main.redis_client', fakeredis.FakeStrictRedis()):
+        yield
 
-app.get('/status/:id', async (req, res) => {
-  try {
-    const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: "something went wrong" });
-  }
-});
 
-app.listen(3000, () => {
-  console.log('Frontend running on port 3000');
-});
+@pytest.fixture
+def client():
+    """Test client for API endpoints."""
+    app.testing = True
+    with app.test_client() as client:
+        yield client
+
+
+def test_health_check(mock_redis, client):
+    """Test 1: Health check endpoint."""
+    rv = client.get('/')
+    assert rv.status_code == 200
+    assert b'healthy' in rv.data  # Adjust based on your response
+
+
+def test_job_create(mock_redis, client):
+    """Test 2: Create job endpoint."""
+    job_data = {'task': 'test_task', 'priority': 1}
+    rv = client.post('/jobs', json=job_data)
+    assert rv.status_code == 201
+    assert b'job created' in rv.data  # Adjust assertion
+
+
+def test_get_jobs(mock_redis, client):
+    """Test 3: Get jobs endpoint."""
+    # Create a job first
+    client.post('/jobs', json={'task': 'test_task', 'priority': 1})
+    rv = client.get('/jobs')
+    assert rv.status_code == 200
+    assert b'test_task' in rv.data  # Verify job in response
