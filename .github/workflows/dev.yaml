@@ -1,8 +1,8 @@
 name: HNG14-STAGE2-DEVOPS
 
-on:
-  push:
-     branches:
+# on:
+#   push:
+#      branches:
 #       -  main
   workflow_dispatch:
   
