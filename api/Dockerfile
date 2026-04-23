@@ -24,7 +24,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY . .
+
 RUN chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
