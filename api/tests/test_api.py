@@ -1,5 +1,4 @@
 """API unit tests - FastAPI with real Redis service."""
-import os
 import pytest
 from fastapi.testclient import TestClient
 
