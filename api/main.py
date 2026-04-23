@@ -24,3 +24,8 @@ def get_job(job_id: str):
     if not status:
         return {"error": "not found"}
     return {"job_id": job_id, "status": status.decode()}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
