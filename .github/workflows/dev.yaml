@@ -73,7 +73,7 @@ jobs:
           pip install -r requirements.txt pytest pytest-cov fakeredis httpx
       - name: Set PYTHONPATH
         working-directory: api
-        run: pwd
+        run: echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
       - name: Run tests with coverage
         working-directory: api
         run: |
