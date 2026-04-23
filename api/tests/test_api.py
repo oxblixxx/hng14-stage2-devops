@@ -1,18 +1,22 @@
-# api/tests/test_api.py
-import pytest
-import fakeredis  # Mocks Redis for unit tests
-from unittest.mock import patch, MagicMock
-import sys
+"""API unit tests with Redis mocked."""
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # Import from api/
+import sys
+from unittest.mock import patch
+import pytest
+import fakeredis
 
-from main import app, redis_client  # Adjust imports to match your main.py
+# Add api/ to path FIRST (fixes E402)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from main import app  # noqa: F401  # Only app needed
+
 
 @pytest.fixture
 def mock_redis():
     """Mock Redis instance."""
     with patch('main.redis_client', fakeredis.FakeStrictRedis()):
         yield
+
 
 @pytest.fixture
 def client():
@@ -21,11 +25,13 @@ def client():
     with app.test_client() as client:
         yield client
 
+
 def test_health_check(mock_redis, client):
     """Test 1: Health check endpoint."""
     rv = client.get('/')
     assert rv.status_code == 200
     assert b'healthy' in rv.data  # Adjust based on your response
+
 
 def test_job_create(mock_redis, client):
     """Test 2: Create job endpoint."""
@@ -33,6 +39,7 @@ def test_job_create(mock_redis, client):
     rv = client.post('/jobs', json=job_data)
     assert rv.status_code == 201
     assert b'job created' in rv.data  # Adjust assertion
+
 
 def test_get_jobs(mock_redis, client):
     """Test 3: Get jobs endpoint."""
