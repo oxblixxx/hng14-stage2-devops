@@ -23,6 +23,26 @@ jobs:
         run: pip install flake8
       - name: Run flake8
         run: flake8 .
-
-
-  
+  ESLINT:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install eslint
+        run: npm install -g eslint
+        
+      - name: Run eslint
+        working-directory: frontend
+        run: npx eslint .
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install hadolint
+        run: |
+          wget -O hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+          chmod +x hadolint
+          sudo mv hadolint /usr/local/bin/
+      - name: Lint Dockerfiles
+        run: hadolint $(find . -name "Dockerfile")
