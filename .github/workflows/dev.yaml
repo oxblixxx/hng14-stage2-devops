@@ -1,78 +1,78 @@
-name: HNG14-STAGE2-DEVOPS
+# name: HNG14-STAGE2-DEVOPS
 
-# on:
-#   push:
-#      branches:
-#       -  main
-  workflow_dispatch:
+# # on:
+# #   push:
+# #      branches:
+# #       -  main
+#   workflow_dispatch:
   
-env:
-  REGISTRY: oxblixxx:5000
-  IMAGE_PREFIX: job-tracker
+# env:
+#   REGISTRY: oxblixxx:5000
+#   IMAGE_PREFIX: job-tracker
 
-jobs:
-  PYTHON-LINT:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install Python lint deps
-        run: pip install flake8
-      - name: Run flake8
-        run: flake8 .
-  ESLINT:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Install eslint
-        run: npm install -g eslint
+# jobs:
+#   PYTHON-LINT:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+#       - name: Install Python lint deps
+#         run: pip install flake8
+#       - name: Run flake8
+#         run: flake8 .
+#   ESLINT:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Setup Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "20"
+#       - name: Install eslint
+#         run: npm install -g eslint
         
-      - name: Run eslint
-        working-directory: frontend
-        run: npx eslint .
-  hadolint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install hadolint
-        run: |
-          wget -O hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
-          chmod +x hadolint
-          sudo mv hadolint /usr/local/bin/
-      - name: Lint Dockerfiles
-        run: hadolint $(find . -name "Dockerfile")
-  test:
-    runs-on: ubuntu-latest
-    needs: PYTHON-LINT
-    services:
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
+#       - name: Run eslint
+#         working-directory: frontend
+#         run: npx eslint .
+#   hadolint:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Install hadolint
+#         run: |
+#           wget -O hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+#           chmod +x hadolint
+#           sudo mv hadolint /usr/local/bin/
+#       - name: Lint Dockerfiles
+#         run: hadolint $(find . -name "Dockerfile")
+#   test:
+#     runs-on: ubuntu-latest
+#     needs: PYTHON-LINT
+#     services:
+#       redis:
+#         image: redis:7
+#         ports:
+#           - 6379:6379
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
 
-      - name: Install deps
-        run: |
-          pip install pytest pytest-cov fakeredis
+#       - name: Install deps
+#         run: |
+#           pip install pytest pytest-cov fakeredis
 
-      - name: Run tests with coverage
-        run: |
-          pytest --cov=app --cov-report=xml
+#       - name: Run tests with coverage
+#         run: |
+#           pytest --cov=app --cov-report=xml
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
+#       - name: Upload coverage
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: coverage-report
+#           path: coverage.xml
