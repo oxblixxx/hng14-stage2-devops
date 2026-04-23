@@ -1,10 +1,10 @@
 """API unit tests - FastAPI with real Redis service."""
 import os
-import sys
+#import sys
 import pytest
 from fastapi.testclient import TestClient
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+#sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from main import app
 
