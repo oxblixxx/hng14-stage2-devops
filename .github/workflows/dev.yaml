@@ -1,0 +1,28 @@
+name: HNG14-STAGE2-DEVOPS
+
+on:
+  push:
+     branches:
+       -  main
+  workflow_dispatch:
+  
+env:
+  REGISTRY: oxblixxx:5000
+  IMAGE_PREFIX: job-tracker
+
+jobs:
+  PYTHON-LINT:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python lint deps
+        run: pip install flake8
+      - name: Run flake8
+        run: flake8 .
+
+
+  
