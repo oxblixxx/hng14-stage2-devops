@@ -68,6 +68,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install deps
+        working-directory: api
         run: |
           pip install -r requirements.txt pytest pytest-cov fakeredis
       - name: Run tests with coverage
