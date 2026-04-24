@@ -130,6 +130,8 @@ jobs:
           - 5000:5000
     steps:
       - uses: actions/checkout@v4
+      - name: Set SHA
+        run: echo "SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
       # ------------------------
       # REBUILD IMAGES FOR SCANNING
       # ------------------------
