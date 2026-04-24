@@ -152,11 +152,12 @@ jobs:
           done
 # https://github.com/marketplace/actions/aqua-security-trivy?version=v0.36.0
       - name: Install Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-
-      # ------------------------
-      # Scan all images + SARIF
-      # ------------------------
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.56.2_Linux-64bit.deb
+          sudo dpkg -i trivy_0.56.2_Linux-64bit.deb
+      
       - name: Scan images
         run: |
           for service in api frontend worker; do
