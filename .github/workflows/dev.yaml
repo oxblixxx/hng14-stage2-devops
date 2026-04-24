@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: oxblixxx:5000
+  REGISTRY: localhost:5000
   IMAGE_PREFIX: job-tracker
 
 jobs:
