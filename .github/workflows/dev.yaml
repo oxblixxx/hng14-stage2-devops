@@ -126,16 +126,41 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-# https://github.com/marketplace/actions/trivy-action
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@v3
+      # ------------------------
+      # REBUILD IMAGES FOR SCANNING
+      # ------------------------
+      - name: Build images
+        run: |
+          docker build -t $REGISTRY/$IMAGE_PREFIX-api:$SHA -t $REGISTRY/$IMAGE_PREFIX-api:latest ./api
+          docker build -t $REGISTRY/$IMAGE_PREFIX-frontend:$SHA -t $REGISTRY/$IMAGE_PREFIX-frontend:latest ./frontend
+          docker build -t $REGISTRY/$IMAGE_PREFIX-worker:$SHA -t $REGISTRY/$IMAGE_PREFIX-worker:latest ./worker
 
+      # ------------------------
+      # Push to local registry
+      # ------------------------
+      - name: Push images
+        run: |
+          for service in api frontend worker; do
+            docker push $REGISTRY/$IMAGE_PREFIX-$service:$SHA
+            docker push $REGISTRY/$IMAGE_PREFIX-$service:latest
+          done
+# https://github.com/marketplace/actions/aqua-security-trivy?version=v0.36.0
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+
+      # ------------------------
+      # Scan all images + SARIF
+      # ------------------------
       - name: Scan images
         run: |
-          trivy image --severity CRITICAL --exit-code 1 --format sarif -o trivy-results.sarif $REGISTRY/$IMAGE_PREFIX-api:$SHA
-          trivy image --severity CRITICAL --exit-code 1 --format sarif -o trivy-results.sarif $REGISTRY/$IMAGE_PREFIX-frontend:$SHA
-          trivy image --severity CRITICAL --exit-code 1 --format sarif -o trivy-results.sarif $REGISTRY/$IMAGE_PREFIX-worker:$SHA
-
+          for service in api frontend worker; do
+            trivy image \
+              --severity CRITICAL \
+              --exit-code 1 \
+              --format sarif \
+              -o trivy-$service.sarif \
+              $REGISTRY/$IMAGE_PREFIX-$service:$SHA
+          done
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
