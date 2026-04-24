@@ -128,7 +128,7 @@ jobs:
       - uses: actions/checkout@v4
 # https://github.com/marketplace/actions/trivy-action
       - name: Install Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v3
 
       - name: Scan images
         run: |
