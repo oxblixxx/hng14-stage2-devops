@@ -1,6 +1,22 @@
 version: "3.9"
 
 services:
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server
+    ports:
+      - "6379:6379"
+    networks:
+      - api_worker_frontend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
   api:
     build:
       context: ./api
@@ -9,10 +25,16 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+
     environment:
-      REDIS_HOST: ${REDIS_HOST}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
     networks:
       - api_worker_frontend
+    depends_on:
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -31,22 +53,18 @@ services:
       dockerfile: Dockerfile
     container_name: worker
     restart: unless-stopped
+
     environment:
-      REDIS_HOST: ${REDIS_HOST}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+
     networks:
       - api_worker_frontend
-  redis:
-    image: redis:7
-    container_name: redis
-    restart: unless-stopped
-    command: redis-server
-#    environment:
-#      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    ports:
-      - "6379:6379"
-    networks:
-      - api_worker_frontend
+
+    depends_on:
+      redis:
+        condition: service_healthy
 
 networks:
   api_worker_frontend:
