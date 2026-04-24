@@ -50,4 +50,5 @@ services:
 
 networks:
   api_worker_frontend:
-    external: true
+    name: api_worker_frontend
+    driver: bridge
