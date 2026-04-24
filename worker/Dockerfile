@@ -17,7 +17,7 @@ RUN useradd -m appuser
 
 # Install procps for pgrep
 RUN apt-get update && \
-    apt-get install -y procps=2:4.0.4-4ubuntu3.2 --no-install-recommends && \
+    apt-get install -y procps=2:4.* --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependencies
