@@ -35,4 +35,4 @@ while True:
     job = r.brpop("job", timeout=5)
     if job:
         _, job_id = job
-        process_job(job_id.decode())
+        process_job(job_id)
