@@ -22,6 +22,8 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
+RUN apk add --no-cache curl
+
 USER node
 
 # Copy only production node_modules
@@ -30,9 +32,9 @@ COPY --from=deps /app/node_modules /app/node_modules
 # Copy app source (no dev deps)
 COPY --from=builder /app /app
 
-EXPOSE 3000
+EXPOSE 3002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+  CMD curl -f http://localhost:3002/health || exit 1
 
 CMD ["npm", "start"]
