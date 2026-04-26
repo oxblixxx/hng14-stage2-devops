@@ -22,7 +22,7 @@ FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl=8.*
 
 USER node
 
