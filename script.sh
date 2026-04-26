@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-CURRENT_VERSION="v1"
-NEW_VERSION="v2"
+CURRENT_VERSION="v3"
+NEW_VERSION="v4"
 TIMEOUT=60
 SERVICES=("api" "worker" "frontend")
 IMAGE_PREFIX="job-tracker"
@@ -13,8 +13,19 @@ echo "🚀 Deploying $NEW_VERSION (previous: $CURRENT_VERSION)"
 # Ensure network exists
 docker network inspect "$NETWORK" >/dev/null 2>&1 || docker network create "$NETWORK"
 
-echo "bring up redis"
-docker compose up redis -d
+# STARTING REDIS
+if docker ps -a --format '{{.Names}}' | grep -q "^$IMAGE_PREFIX-redis$"; then
+  echo "🔁 Redis exists — starting if stopped"
+  docker start "$IMAGE_PREFIX-redis" >/dev/null 2>&1 || true
+else
+  echo "🚀 Starting Redis"
+  docker run -d \
+    --name "$IMAGE_PREFIX-redis" \
+    --restart unless-stopped \
+    -p 6379:6379 \
+    --network "$NETWORK" \
+    redis:7
+fi
 
 # Build images
 for SERVICE in "${SERVICES[@]}"; do
@@ -22,36 +33,44 @@ for SERVICE in "${SERVICES[@]}"; do
   docker build -t "$IMAGE_PREFIX-$SERVICE:$NEW_VERSION" --no-cache ./$SERVICE
 done
 
-# Deploy services
+# Track containers
+NEW_CONTAINERS=()
+
+# ---------------------------
+# START ALL NEW CONTAINERS
+# ---------------------------
 for SERVICE in "${SERVICES[@]}"; do
-  echo "🔄 Rolling $SERVICE..."
+  echo "🔄 Starting $SERVICE..."
 
-  # Update env version safely
-  sed -i "s/^VERSION=.*/VERSION=$NEW_VERSION/" .env
-
-  # Correct container name (NO colon allowed)
   CONTAINER_NAME="$IMAGE_PREFIX-$SERVICE-$NEW_VERSION"
 
-  # Run new container
   docker run -d \
     --name "$CONTAINER_NAME" \
     --network "$NETWORK" \
+    -e REDIS_HOST=job-tracker-redis \
+    -e APP_ENV=production \
+    -e APP_URL=147.93.28.195 \
     "$IMAGE_PREFIX-$SERVICE:$NEW_VERSION"
 
-  NEW_CONTAINER="$CONTAINER_NAME"
+  NEW_CONTAINERS+=("$CONTAINER_NAME")
+done
 
-  # Health check loop
+# ---------------------------
+# HEALTH CHECK ALL
+# ---------------------------
+ALL_HEALTHY=true
+
+for SERVICE in "${SERVICES[@]}"; do
+  CONTAINER_NAME="$IMAGE_PREFIX-$SERVICE-$NEW_VERSION"
+
+  echo "⏳ Checking $SERVICE..."
+
   TIMER=0
   while [ $TIMER -lt $TIMEOUT ]; do
-    STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$NEW_CONTAINER" 2>/dev/null || echo "starting")
+    STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null || echo "starting")
 
     if [ "$STATUS" = "healthy" ]; then
-      echo "✅ $SERVICE $NEW_VERSION is healthy"
-
-      # Stop old container (if exists)
-      OLD_CONTAINER="$IMAGE_PREFIX-$SERVICE-$CURRENT_VERSION"
-      docker rm -f "$OLD_CONTAINER" 2>/dev/null || true
-
+      echo "✅ $SERVICE is healthy"
       break
     fi
 
@@ -60,13 +79,35 @@ for SERVICE in "${SERVICES[@]}"; do
     TIMER=$((TIMER + 5))
   done
 
-  # Rollback if failed
   if [ $TIMER -ge $TIMEOUT ]; then
-    echo "❌ $SERVICE failed health check. Rolling back..."
-
-    docker rm -f "$NEW_CONTAINER" 2>/dev/null || true
-    exit 1
+    echo "❌ $SERVICE failed health check"
+    ALL_HEALTHY=false
   fi
 done
+
+# ---------------------------
+# DECISION PHASE
+# ---------------------------
+if [ "$ALL_HEALTHY" = true ]; then
+  echo "🎉 All services healthy — switching traffic"
+
+  # remove old containers ONLY now
+  for SERVICE in "${SERVICES[@]}"; do
+    OLD_CONTAINER="$IMAGE_PREFIX-$SERVICE-$CURRENT_VERSION"
+    docker rm -f "$OLD_CONTAINER" 2>/dev/null || true
+  done
+
+  echo "✅ Old version removed successfully"
+
+else
+  echo "❌ Rollback triggered — removing NEW containers"
+
+  for CONTAINER in "${NEW_CONTAINERS[@]}"; do
+    docker rm -f "$CONTAINER" 2>/dev/null || true
+  done
+
+  echo "🧹 New version removed, old version preserved"
+  exit 1
+fi
 
 echo "🎉 Deployment complete: $NEW_VERSION"
